@@ -20,6 +20,37 @@ class ProfileViewModel : ViewModel() {
         loadProfile()
     }
 
+    fun onUpdateCredentials(login: String, password: String) {
+        val state = _uiState.value as? ProfileUiState.Success ?: return
+        val trimmedLogin = login.trim()
+
+        if (trimmedLogin.isBlank()) {
+            _uiState.value = state.copy(
+                credentialsMessage = null,
+                credentialsError = "Login is required",
+                credentialsEventId = state.credentialsEventId + 1
+            )
+            return
+        }
+
+        if (password.length < 4) {
+            _uiState.value = state.copy(
+                credentialsMessage = null,
+                credentialsError = "Password is too short",
+                credentialsEventId = state.credentialsEventId + 1
+            )
+            return
+        }
+
+        // UI stub only: password is not persisted here. Developer 2 should wire secure credentials update.
+        _uiState.value = state.copy(
+            user = state.user.copy(email = trimmedLogin),
+            credentialsMessage = "Данные профиля обновлены",
+            credentialsError = null,
+            credentialsEventId = state.credentialsEventId + 1
+        )
+    }
+
     fun onLogoutClick() {
         _uiState.value = ProfileUiState.Success(
             user = UserProfileUiModel(

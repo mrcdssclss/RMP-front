@@ -7,6 +7,9 @@ sealed interface ProfileUiState {
 
     data class Success(
         val user: UserProfileUiModel,
-        val appVersion: String
+        val appVersion: String,
+        val credentialsMessage: String? = null,
+        val credentialsError: String? = null,
+        val credentialsEventId: Int = 0
     ) : ProfileUiState
 }

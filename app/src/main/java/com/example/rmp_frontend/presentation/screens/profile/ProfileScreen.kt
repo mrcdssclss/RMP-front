@@ -8,43 +8,73 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.rmp_frontend.presentation.components.AppButton
+import com.example.rmp_frontend.presentation.components.AppTextField
 import com.example.rmp_frontend.presentation.components.AppTopBar
 import com.example.rmp_frontend.presentation.components.EmptyView
 import com.example.rmp_frontend.presentation.components.ErrorView
 import com.example.rmp_frontend.presentation.components.LoadingView
 import com.example.rmp_frontend.presentation.state.ProfileUiState
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
     uiState: ProfileUiState,
     onLogoutClick: () -> Unit,
+    onUpdateCredentials: (String, String) -> Unit,
     onRefreshClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    val handleRefreshClick: () -> Unit = {
+        onRefreshClick()
+        scope.launch {
+            snackbarHostState.showSnackbar("Данные обновляются")
+        }
+    }
+    val showSnackbar: (String) -> Unit = { message ->
+        scope.launch {
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
     Scaffold(
         modifier = modifier,
-        topBar = { AppTopBar(title = "Profile", onRefreshClick = onRefreshClick) }
+        topBar = { AppTopBar(title = "Profile", onRefreshClick = handleRefreshClick) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         when (uiState) {
             ProfileUiState.Loading -> LoadingView(message = "Loading profile", modifier = Modifier.padding(padding))
             ProfileUiState.Empty -> EmptyView(
                 title = "No profile",
                 message = "Sign in to see profile details.",
-                onRefreshClick = onRefreshClick,
+                onRefreshClick = handleRefreshClick,
                 modifier = Modifier.padding(padding)
             )
             is ProfileUiState.Error -> ErrorView(
                 message = uiState.message,
-                onRefreshClick = onRefreshClick,
+                onRefreshClick = handleRefreshClick,
                 modifier = Modifier.padding(padding)
             )
             is ProfileUiState.Success -> LazyColumn(
@@ -58,7 +88,10 @@ fun ProfileScreen(
                     ProfileCard(uiState = uiState)
                 }
                 item {
-                    SettingsCard(appVersion = uiState.appVersion)
+                    SettingsCard(
+                        appVersion = uiState.appVersion,
+                        onSettingsClick = { showSettingsDialog = true }
+                    )
                 }
                 item {
                     AppButton(
@@ -68,6 +101,29 @@ fun ProfileScreen(
                     )
                 }
             }
+        }
+
+        val successState = uiState as? ProfileUiState.Success
+        LaunchedEffect(successState?.credentialsEventId) {
+            val message = successState?.credentialsMessage ?: successState?.credentialsError
+            if (message != null) {
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+
+        if (showSettingsDialog && successState != null) {
+            SettingsDialog(
+                initialLogin = successState.user.email,
+                onSave = { login, password, repeatedPassword ->
+                    if (password != repeatedPassword) {
+                        showSnackbar("Passwords do not match")
+                    } else {
+                        onUpdateCredentials(login, password)
+                        showSettingsDialog = false
+                    }
+                },
+                onDismiss = { showSettingsDialog = false }
+            )
         }
     }
 }
@@ -99,7 +155,10 @@ private fun ProfileCard(uiState: ProfileUiState.Success) {
 }
 
 @Composable
-private fun SettingsCard(appVersion: String) {
+private fun SettingsCard(
+    appVersion: String,
+    onSettingsClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -120,6 +179,58 @@ private fun SettingsCard(appVersion: String) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            AppButton(
+                text = "Настройки",
+                onClick = onSettingsClick,
+                secondary = true
+            )
         }
     }
+}
+
+@Composable
+private fun SettingsDialog(
+    initialLogin: String,
+    onSave: (String, String, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var login by remember(initialLogin) { mutableStateOf(initialLogin) }
+    var password by remember { mutableStateOf("") }
+    var repeatedPassword by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Настройки") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                AppTextField(
+                    value = login,
+                    onValueChange = { login = it },
+                    label = "Login / email"
+                )
+                AppTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = "New password",
+                    visualTransformation = PasswordVisualTransformation()
+                )
+                AppTextField(
+                    value = repeatedPassword,
+                    onValueChange = { repeatedPassword = it },
+                    label = "Repeat password",
+                    visualTransformation = PasswordVisualTransformation()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(login, password, repeatedPassword) }) {
+                Text("Сохранить")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Отмена")
+            }
+        }
+    )
 }

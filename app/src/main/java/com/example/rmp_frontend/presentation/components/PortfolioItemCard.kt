@@ -20,11 +20,13 @@ import com.example.rmp_frontend.presentation.state.PortfolioAssetUiModel
 @Composable
 fun PortfolioItemCard(
     asset: PortfolioAssetUiModel,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val pnlColor = if (asset.profitLoss >= 0.0) Color(0xFF28C76F) else Color(0xFFFF5C5C)
 
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

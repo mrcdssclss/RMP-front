@@ -123,7 +123,7 @@ fun AppNavGraph() {
                 InstrumentScreen(
                     uiState = uiState,
                     onBackClick = { navController.popBackStack() },
-                    onPeriodClick = viewModel::onPeriodClick,
+                    onPeriodSelected = viewModel::onPeriodSelected,
                     onQuantityChange = viewModel::onQuantityChange,
                     onBuyClick = viewModel::onBuyClick,
                     onSellClick = viewModel::onSellClick,
@@ -137,6 +137,9 @@ fun AppNavGraph() {
 
                 PortfolioScreen(
                     uiState = uiState,
+                    onPortfolioInstrumentClick = { ticker ->
+                        navController.navigate(Screen.Instrument.createRoute(ticker))
+                    },
                     onRefreshClick = viewModel::onRefreshClick
                 )
             }
@@ -167,6 +170,7 @@ fun AppNavGraph() {
                 ProfileScreen(
                     uiState = uiState,
                     onLogoutClick = viewModel::onLogoutClick,
+                    onUpdateCredentials = viewModel::onUpdateCredentials,
                     onRefreshClick = viewModel::onRefreshClick
                 )
             }
