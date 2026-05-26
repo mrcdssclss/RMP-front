@@ -7,12 +7,14 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface InstrumentApi {
-    @GET("instruments/{id}")
-    suspend fun getInstrument(@Path("id") instrumentId: String): InstrumentDto
+    @GET("market/instruments")
+    suspend fun getInstruments(): List<InstrumentDto>
 
-    @GET("instruments/{id}/history")
+    @GET("market/prices/history")
     suspend fun getPriceHistory(
-        @Path("id") instrumentId: String,
-        @Query("period") period: String,
+        @Query("ticker") ticker: String,
+        @Query("from") from: String,
+        @Query("to") to: String,
+        @Query("limit") limit: Int = 500,
     ): List<PricePointDto>
 }

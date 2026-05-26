@@ -9,6 +9,7 @@ import com.example.rmp_frontend.presentation.viewmodel.InstrumentViewModel
 import com.example.rmp_frontend.presentation.viewmodel.MarketViewModel
 import com.example.rmp_frontend.presentation.viewmodel.PortfolioViewModel
 import com.example.rmp_frontend.presentation.viewmodel.ProfileViewModel
+import com.example.rmp_frontend.presentation.viewmodel.SplashViewModel
 
 class ViewModelFactory(
     private val appContainer: AppContainer,
@@ -16,6 +17,9 @@ class ViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
         return when {
+            modelClass.isAssignableFrom(SplashViewModel::class.java) -> {
+                SplashViewModel(appContainer.authRepository)
+            }
             modelClass.isAssignableFrom(AuthViewModel::class.java) -> {
                 AuthViewModel(appContainer.authRepository)
             }

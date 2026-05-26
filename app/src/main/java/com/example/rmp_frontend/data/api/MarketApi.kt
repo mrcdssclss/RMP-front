@@ -4,6 +4,6 @@ import com.example.rmp_frontend.data.dto.InstrumentDto
 import retrofit2.http.GET
 
 interface MarketApi {
-    @GET("instruments")
+    @GET("market/instruments")
     suspend fun getInstruments(): List<InstrumentDto>
 }

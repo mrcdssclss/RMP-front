@@ -7,8 +7,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class ApiClient(
-    baseUrl: String,
     tokenStorage: TokenStorage,
+    baseUrl: String = ApiConfig.BASE_URL,
 ) {
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->

@@ -20,12 +20,24 @@ fun TransactionDto.toDomain(): Transaction {
 
 fun TradeResultDto.toDomain(): TradeResult {
     return TradeResult(
-        orderId = orderId,
-        instrumentId = instrumentId,
+        orderId = transactionId,
+        instrumentId = ticker,
         quantity = quantity,
-        executedPrice = executedPrice,
-        type = type.toTransactionType(),
-        message = message ?: "Order executed",
+        executedPrice = price,
+        type = side.toTransactionType(),
+        message = "Order executed",
+    )
+}
+
+fun TradeResultDto.toTransactionDomain(): Transaction {
+    return Transaction(
+        id = transactionId,
+        instrumentId = ticker,
+        ticker = ticker,
+        type = side.toTransactionType(),
+        quantity = quantity,
+        price = price,
+        timestampMillis = createdAt.toTimestampMillis(),
     )
 }
 

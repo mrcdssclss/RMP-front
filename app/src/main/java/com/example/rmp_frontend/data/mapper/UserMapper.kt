@@ -5,9 +5,9 @@ import com.example.rmp_frontend.domain.model.User
 
 fun UserDto.toDomain(): User {
     return User(
-        id = id,
-        login = login,
-        displayName = displayName ?: login,
+        id = userId,
+        login = email,
+        displayName = listOfNotNull(firstName, lastName).joinToString(" ").ifBlank { email },
         email = email,
     )
 }

@@ -4,4 +4,5 @@ import com.example.rmp_frontend.domain.model.User
 
 interface ProfileRepository {
     suspend fun getProfile(): User
+    suspend fun updateProfile(firstName: String?, lastName: String?): User
 }

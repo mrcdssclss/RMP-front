@@ -15,7 +15,7 @@ class MockAuthRepository(
         return AuthToken(accessToken = "mock-token-$login").also { tokenStorage.saveToken(it) }
     }
 
-    override suspend fun register(login: String, password: String): AuthToken {
+    override suspend fun register(login: String, password: String, firstName: String?): AuthToken {
         delay(300)
         require(login.isNotBlank()) { "Введите логин" }
         require(password.length >= 4) { "Пароль должен быть не короче 4 символов" }

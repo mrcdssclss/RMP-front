@@ -6,15 +6,15 @@ import com.example.rmp_frontend.domain.repository.TradingRepository
 import kotlinx.coroutines.delay
 
 class MockTradingRepository : TradingRepository {
-    override suspend fun buyInstrument(instrumentId: String, quantity: Int): TradeResult {
+    override suspend fun buyInstrument(instrumentId: String, quantity: Double): TradeResult {
         return trade(instrumentId, quantity, TransactionType.Buy)
     }
 
-    override suspend fun sellInstrument(instrumentId: String, quantity: Int): TradeResult {
+    override suspend fun sellInstrument(instrumentId: String, quantity: Double): TradeResult {
         return trade(instrumentId, quantity, TransactionType.Sell)
     }
 
-    private suspend fun trade(instrumentId: String, quantity: Int, type: TransactionType): TradeResult {
+    private suspend fun trade(instrumentId: String, quantity: Double, type: TransactionType): TradeResult {
         delay(250)
         require(quantity > 0) { "Количество должно быть больше 0" }
         val instrument = MockData.instruments.firstOrNull { it.id == instrumentId }

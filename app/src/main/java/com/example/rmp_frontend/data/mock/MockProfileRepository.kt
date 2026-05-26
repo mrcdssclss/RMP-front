@@ -9,4 +9,8 @@ class MockProfileRepository : ProfileRepository {
         delay(200)
         return MockData.user
     }
+
+    override suspend fun updateProfile(firstName: String?, lastName: String?): User {
+        return MockData.user.copy(displayName = listOfNotNull(firstName, lastName).joinToString(" ").ifBlank { MockData.user.displayName })
+    }
 }

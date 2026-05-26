@@ -1,154 +1,143 @@
-# Codex Worklog
+# Codex Worklog: API Integration
 
-## Initial findings
+## Что найдено в backend
 
-- Android project uses Gradle Kotlin DSL: `settings.gradle.kts`, root `build.gradle.kts`, `app/build.gradle.kts`.
-- Compose and Navigation Compose are already connected in the app module.
-- Current entry point is `MainActivity`, which opens a minimal Compose navigation graph.
-- Existing UI is a small prototype: login, home, portfolio/profile placeholders, bottom bar, and a `HomeViewModel`.
-- Existing data/model files are limited to a local `AssetRepository` stub and `Asset` model.
-- Attached PDFs could not be extracted as plain text locally because at least the interface PDF is rendered as PDF/image content without a useful text layer. The implementation follows the architecture and UI requirements explicitly listed in the task.
+- Фактический backend находится в
+  `/Users/lepidodendronnnn/IdeaProjects/rmp-api-service/rmp-api-service`.
+- Это Spring Boot/Kotlin сервис с Maven wrapper (`./mvnw`), а не Ktor/Gradle.
+- REST port: `8080`; market WebSocket: `/ws/market`.
+- Защита: JWT Bearer; без токена доступны только auth/служебные маршруты.
+- Зависимости локального запуска: PostgreSQL `localhost:5432/rmp` и Redis
+  `localhost:6379`.
+- В исходной конфигурации стоит `spring.jpa.hibernate.ddl-auto: validate`;
+  миграции для чистой локальной базы в проекте не найдены.
 
-## Short plan
+## Подключенные endpoint'ы
 
-- Keep Data Layer untouched.
-- Replace prototype UI navigation with a Presentation Layer implementation based on MVVM.
-- Add explicit UI states for Loading, Success, Error, Empty where applicable.
-- Add ViewModel stubs that expose UI State and receive UI events without backend/API/token logic.
-- Implement Splash, Auth/Login/Register, Market, Instrument, Portfolio, History, Profile screens.
-- Update docs and verify compilation.
+| Возможность | Backend endpoint | Frontend слой |
+| --- | --- | --- |
+| Register | `POST /api/auth/register` | `AuthViewModel -> AuthRepositoryImpl -> AuthApi` |
+| Login | `POST /api/auth/login` | `AuthViewModel -> AuthRepositoryImpl -> AuthApi` |
+| Market / refresh | `GET /api/market/instruments` | `MarketViewModel -> MarketRepositoryImpl -> MarketApi` |
+| Live market price | `WS /ws/market` | `MarketViewModel -> MarketRepositoryImpl -> PriceWebSocketClient` |
+| Instrument details | `GET /api/market/instruments` | `InstrumentViewModel` resolves selected ticker from real list |
+| Chart periods | `GET /api/market/prices/history` | `InstrumentViewModel -> InstrumentRepositoryImpl -> InstrumentApi` |
+| Buy / Sell | `POST /api/trades/buy`, `POST /api/trades/sell` | confirmation dialog -> `InstrumentViewModel -> TradingRepositoryImpl` |
+| History | `GET /api/trades/history` | `HistoryViewModel -> HistoryRepositoryImpl -> HistoryApi` |
+| Profile | `GET /api/profile` | `ProfileViewModel -> ProfileRepositoryImpl -> ProfileApi` |
+| Display name settings | `PATCH /api/profile` | `ProfileViewModel -> ProfileRepositoryImpl -> ProfileApi` |
 
-## Completed changes
+JWT из register/login сохраняется через существующий `TokenStorage`.
+`ApiClient` и `PriceWebSocketClient` добавляют `Authorization: Bearer <token>`.
 
-- Added Presentation Layer package: `presentation/navigation`, `presentation/screens`, `presentation/components`, `presentation/state`, `presentation/viewmodel`.
-- Implemented screens:
-  - SplashScreen
-  - AuthScreen
-  - LoginScreen
-  - RegisterScreen
-  - MarketScreen
-  - InstrumentScreen
-  - PortfolioScreen
-  - HistoryScreen
-  - ProfileScreen
-- Implemented navigation:
-  - Splash to Auth/Main by navigation state
-  - Auth to Market after successful UI submit
-  - Bottom navigation for Market, Portfolio, History, Profile
-  - Market to Instrument by ticker
-  - Profile logout to Auth
-- Added reusable UI components:
-  - AppButton
-  - AppTextField
-  - LoadingView
-  - ErrorView
-  - EmptyView
-  - InstrumentCard
-  - PortfolioItemCard
-  - TransactionItem
-  - PriceChangeBadge
-  - AppTopBar
-- Added explicit UI state classes for Auth, Market, Instrument, Portfolio, History, Profile, Splash.
-- Updated `MainActivity` to open the new `AppNavGraph`.
-- Updated the Compose theme to a dark investment-terminal style.
-- Removed old prototype UI/navigation/ViewModel files that duplicated the new Presentation Layer.
-- Added `docs/frontend-ui.md`.
+## Отсутствующие endpoints и fallback
 
-## Architecture decisions
+- Реальный Portfolio positions REST endpoint отсутствует. `PortfolioViewModel`
+  пока использует fallback `MockPortfolioRepository`, который строит mock-позиции
+  только по инструментам из `MarketRepository` (`GET /api/market/instruments`).
+  При текущем backend это одна позиция `AAPL`; клик по ней открывает реальный
+  `InstrumentScreen` для `AAPL`.
+- Endpoint изменения email/password отсутствует. Settings изменяет только имя
+  через поддерживаемый `PATCH /api/profile`; fake password mutation удалена.
+- Отдельного endpoint деталей инструмента нет. Детали формируются из записи
+  `/api/market/instruments`.
+- Backend не возвращает дневной процент изменения инструмента; UI отображает
+  `0.0%` до появления такого поля/endpoint.
 
-- Data Layer was not modified except leaving existing local data stubs in place.
-- Composable functions do not call backend, API clients, repositories, WebSocket, or token storage.
-- User actions are sent to ViewModel methods or navigation callbacks.
-- ViewModels expose `StateFlow` UI state and currently use in-memory sample UI data only as compile-safe placeholders.
-- Buy/sell buttons only report that a request was sent to the ViewModel; no business purchase/sale logic is implemented in UI.
+## Измененные frontend файлы
 
-## Remaining limitations
+- Конфигурация и transport:
+  `AndroidManifest.xml`, `MainActivity.kt`,
+  `data/api/ApiConfig.kt`, `data/api/ApiClient.kt`, API interfaces,
+  DTO, mappers, `data/websocket/PriceWebSocketClient.kt`.
+- Domain/data:
+  repository contracts, real repository implementations и согласованные mock
+  implementations для fallback.
+- Presentation:
+  `presentation/di/AppContainer.kt`, `ViewModelFactory.kt`,
+  `navigation/AppNavGraph.kt`, UI state и ViewModel для auth/splash/market/
+  instrument/portfolio/history/profile, `InstrumentScreen.kt`,
+  `ProfileScreen.kt`.
+- Документация: `API_INTEGRATION_MAP.md`, `WORKLOG_CODEX.md`.
 
-- Splash always routes to Auth because real authorization/token state belongs to Developer 2.
-- Market, portfolio, history, profile, and instrument details use local sample UI data.
-- Auth success is a UI-level stub and does not perform real authentication.
-- There is no real API client, REST/WebSocket integration, token persistence, or backend error mapping in this work.
+## Измененные backend файлы
 
-## Developer 2 follow-up
+- Backend source files не изменялись.
+- Для локальной проверки были запущены контейнеры `rmp-codex-postgres` и
+  `rmp-codex-redis`; в локальную БД добавлен тестовый инструмент `AAPL`,
+  а в Redis установлена текущая тестовая цена.
 
-- Implement backend API client and repositories in the Data Layer.
-- Connect ViewModels to repositories through the agreed architecture.
-- Add token Local Storage and expose authorization state to Splash/Auth/Profile.
-- Implement real buy/sell business flow outside the UI layer.
-- Add WebSocket/streaming market updates and map them into UI State.
-- Replace sample UI data with real domain/data models.
+## Как запустить backend локально
 
-## Verification
+Первый запуск зависимостей:
 
-- `./gradlew :app:compileDebugKotlin` completed successfully.
-- `./gradlew :app:assembleDebug` completed successfully.
+```bash
+docker run --name rmp-codex-postgres -e POSTGRES_DB=rmp -e POSTGRES_USER=rmp -e POSTGRES_PASSWORD=rmp -p 5432:5432 -d postgres:16-alpine
+docker run --name rmp-codex-redis -p 6379:6379 -d redis:7-alpine
+```
 
-## Interactivity pass
+При повторном запуске:
 
-- Previously weak/decorative actions:
-  - `Refresh` in top bars and empty/error retry views called ViewModel methods, but did not give visible immediate feedback when sample data reloaded synchronously.
-  - `Buy` and `Sell` on `InstrumentScreen` called ViewModel methods directly without confirmation, quantity handoff in the callback contract, or snackbar feedback.
-  - `Success` states with empty lists on Market/Portfolio/History could render an empty list instead of the explicit empty state.
-- Added callbacks/wiring:
-  - `InstrumentScreen.onBuyClick(quantity: Double)`
-  - `InstrumentScreen.onSellClick(quantity: Double)`
-  - `InstrumentViewModel.onBuyClick(quantity: Double)`
-  - `InstrumentViewModel.onSellClick(quantity: Double)`
-  - Refresh actions on Market, Instrument, Portfolio, History, and Profile now call the existing refresh callback and show snackbar feedback: `Данные обновляются`.
-- UI feedback added:
-  - Buy/Sell now open a confirmation dialog with ticker, price, quantity, and total amount.
-  - Confirming Buy/Sell calls the corresponding callback/ViewModel method and shows:
-    - `Заявка на покупку отправлена`
-    - `Заявка на продажу отправлена`
-  - Invalid Buy/Sell quantity still reaches the callback as a UI-level validation stub and shows `Введите количество`.
-  - Operation success/error messages from `InstrumentUiState.Success` remain visible in the screen content.
-  - Empty list `Success` states now render `EmptyView` with retry instead of a blank list.
-- UI stubs that remain by design:
-  - Refresh reloads in-memory sample UI data only.
-  - Buy/Sell only update UI state and snackbar messages; no order is sent.
-  - Auth/profile/portfolio/history/market sample data is still local Presentation Layer placeholder data.
-- Developer 2 follow-up:
-  - Connect refresh methods to repository/use-case loading state and backend error mapping.
-  - Replace Buy/Sell UI stub with a real order submission flow outside Composables.
-  - Preserve the `quantity` callback contract when wiring domain/order use cases.
-  - Map backend success/error messages into `UiState` so the Presentation Layer can keep displaying them.
-- Verification:
-  - `./gradlew :app:compileDebugKotlin` completed successfully after the interactivity changes.
+```bash
+docker start rmp-codex-postgres rmp-codex-redis
+```
 
-## Profile/settings and navigation interactivity pass
+Запуск API на чистой локальной БД:
 
-- Changed Profile UI:
-  - Added a visible `Настройки` action inside `ProfileScreen`.
-  - Clicking `Настройки` opens a settings dialog.
-  - The dialog contains editable `Login / email`, `New password`, and `Repeat password` fields.
-  - `Сохранить` validates matching passwords in UI, calls `onUpdateCredentials(login, password)`, and relies on `ProfileUiState` to show success/error snackbar feedback.
-  - `Отмена` closes the dialog without calling callbacks.
-- Added Profile callbacks/state:
-  - `ProfileScreen.onUpdateCredentials(login, password)`
-  - `ProfileViewModel.onUpdateCredentials(login, password)`
-  - `ProfileUiState.Success.credentialsMessage`
-  - `ProfileUiState.Success.credentialsError`
-- UI stubs by design:
-  - Profile credentials update only updates UI state and snackbar messages.
-  - Password is not persisted in UI state, Local Storage, or Data Layer.
-  - No API request is made from Composables or ViewModel stubs.
-- Changed Instrument chart behavior:
-  - Renamed the period callback contract to `onPeriodSelected(period)` at the UI boundary.
-  - `InstrumentViewModel.onPeriodSelected(period)` updates `selectedPeriod` and replaces mock `chartPoints`.
-  - Added mock chart point sets for `1D`, `1W`, `1M`, `1Y`, and `ALL`.
-  - Period buttons now visibly highlight the selected period, and chart redraws from changed state.
-- Changed Portfolio UI/navigation:
-  - `PortfolioItemCard` now accepts `onClick`.
-  - `PortfolioScreen` now exposes `onPortfolioInstrumentClick(instrumentId)`.
-  - `AppNavGraph` wires portfolio asset clicks to `InstrumentScreen` using the asset ticker.
-  - Buy/Sell on instruments opened from Portfolio use the same confirmation dialog and snackbar flow as instruments opened from Market.
-- Empty callback audit:
-  - Checked presentation code for `onClick = {}` and `TODO()` placeholders.
-  - No empty click handlers or `TODO()` calls remain in the Presentation Layer search scope.
-- Developer 2 follow-up:
-  - Replace profile credentials UI stub with secure credentials update use case and backend error mapping.
-  - Connect chart periods to repository/API data when backend chart endpoints exist.
-  - Keep portfolio-to-instrument navigation contract or replace it with a domain-owned instrument id if ticker is not sufficient.
-  - Keep Buy/Sell submission outside Composables and map order success/error into `UiState`.
-- Verification:
-  - `./gradlew :app:compileDebugKotlin` completed successfully after these changes.
+```bash
+cd /Users/lepidodendronnnn/IdeaProjects/rmp-api-service/rmp-api-service
+SPRING_JPA_HIBERNATE_DDL_AUTO=update ./mvnw spring-boot:run
+```
+
+Override `ddl-auto=update` нужен только потому, что сервис не содержит
+миграций для создания пустой локальной схемы.
+
+## Как собрать и запустить frontend
+
+```bash
+cd /Users/lepidodendronnnn/IdeaProjects/RMPfrontend
+./gradlew :app:compileDebugKotlin
+./gradlew :app:assembleDebug
+```
+
+В Android emulator приложение использует единый конфиг:
+REST `http://10.0.2.2:8080/api/`, WebSocket
+`ws://10.0.2.2:8080/ws/market`.
+
+## Как протестировать сценарии
+
+1. Register/Login: зарегистрировать пользователя и войти; после auth
+   защищенные экраны должны перестать возвращать `401`.
+2. Market: открыть экран и выполнить refresh; список приходит из backend.
+   WebSocket подключается через repository, а не из Compose.
+3. Instrument: открыть `AAPL` и переключить `1D/1W/1M/1Y/ALL`; каждый период
+   загружает историю через repository/API и обновляет график.
+4. Buy/Sell: выбрать количество, подтвердить dialog; UI показывает
+   loading/success/error, а операция появляется в History.
+5. Portfolio: экран остается документированным mock fallback, синхронизированным
+   с backend market instruments; клик по `AAPL` ведет на подключенный Instrument.
+6. History: refresh читает `GET /api/trades/history`.
+7. Profile/Settings: профиль читается из API; изменение display name вызывает
+   `PATCH /api/profile`. Изменение email/password не поддерживается backend.
+
+## Выполненная проверка
+
+- Backend стартовал на `8080`, health вернул `UP`.
+- `curl` успешно проверил register/login, market instruments, price history,
+  profile GET/PATCH, buy, sell и trade history.
+- Для trade test использовались `AAPL` по цене `189.45`, затем в истории
+  появились операции BUY и SELL.
+- `./gradlew :app:compileDebugKotlin` и `./gradlew :app:assembleDebug`
+  завершились успешно.
+- `git diff --check` не обнаружил whitespace-ошибок; audit presentation-кода
+  не обнаружил пустых `onClick = {}` или `TODO()` обработчиков.
+
+## Оставшиеся ограничения
+
+- Для полноценного Portfolio нужен новый backend controller/service contract.
+- Для production нужны миграции БД вместо локального `ddl-auto=update`.
+- Процент изменения цены и изменение credentials потребуют дополнительных
+  backend контрактов.
+- При локальном DEBUG-запуске backend логирует request body регистрации,
+  включая пароль; перед реальным использованием этот уровень/логирование
+  следует отключить или маскировать.

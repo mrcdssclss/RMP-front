@@ -12,44 +12,76 @@ import kotlinx.coroutines.launch
 class AuthViewModel(
     private val authRepository: AuthRepository,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(AuthUiState())
+    private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Editing())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    fun checkSession() {
+    fun showLogin() {
+        _uiState.value = currentForm().copy(isRegisterMode = false, emailError = null, passwordError = null)
+    }
+
+    fun showRegister() {
+        _uiState.value = currentForm().copy(isRegisterMode = true, emailError = null, passwordError = null)
+    }
+
+    fun onEmailChange(value: String) {
+        _uiState.value = currentForm().copy(email = value, emailError = null)
+    }
+
+    fun onPasswordChange(value: String) {
+        _uiState.value = currentForm().copy(password = value, passwordError = null)
+    }
+
+    fun onNameChange(value: String) {
+        _uiState.value = currentForm().copy(name = value)
+    }
+
+    fun onLoginClick() = submit(isRegisterMode = false)
+
+    fun onRegisterClick() = submit(isRegisterMode = true)
+
+    fun clearAuthResult() {
+        _uiState.value = AuthUiState.Editing()
+    }
+
+    private fun submit(isRegisterMode: Boolean) {
+        val form = currentForm().copy(isRegisterMode = isRegisterMode)
+        val emailError = if (!form.email.contains('@')) "Enter a valid email" else null
+        val passwordError = when {
+            form.password.isBlank() -> "Password is required"
+            isRegisterMode && form.password.length < 8 -> "Password must contain at least 8 characters"
+            else -> null
+        }
+        if (emailError != null || passwordError != null) {
+            _uiState.value = form.copy(emailError = emailError, passwordError = passwordError)
+            return
+        }
+
+        _uiState.value = AuthUiState.Loading(form.email, form.password, form.name, isRegisterMode)
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            runCatching { authRepository.currentToken() }
-                .onSuccess { token ->
-                    _uiState.value = AuthUiState(isAuthorized = token != null, isEmpty = token == null)
+            runCatching {
+                if (isRegisterMode) {
+                    authRepository.register(form.email, form.password, form.name.trim().takeIf(String::isNotEmpty))
+                } else {
+                    authRepository.login(form.email, form.password)
                 }
-                .onFailure { error ->
-                    _uiState.value = AuthUiState(errorMessage = error.toUserMessage())
-                }
+            }.onSuccess {
+                _uiState.value = AuthUiState.Success
+            }.onFailure { error ->
+                _uiState.value = AuthUiState.Error(
+                    message = error.toUserMessage(),
+                    email = form.email,
+                    password = form.password,
+                    name = form.name,
+                    isRegisterMode = isRegisterMode,
+                )
+            }
         }
     }
 
-    fun login(login: String, password: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            runCatching { authRepository.login(login, password) }
-                .onSuccess { _uiState.value = AuthUiState(isAuthorized = true) }
-                .onFailure { error -> _uiState.value = AuthUiState(errorMessage = error.toUserMessage()) }
-        }
-    }
-
-    fun register(login: String, password: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            runCatching { authRepository.register(login, password) }
-                .onSuccess { _uiState.value = AuthUiState(isAuthorized = true) }
-                .onFailure { error -> _uiState.value = AuthUiState(errorMessage = error.toUserMessage()) }
-        }
-    }
-
-    fun logout() {
-        viewModelScope.launch {
-            authRepository.logout()
-            _uiState.value = AuthUiState(isAuthorized = false, isEmpty = true)
-        }
+    private fun currentForm(): AuthUiState.Editing = when (val state = _uiState.value) {
+        AuthUiState.Empty, AuthUiState.Success -> AuthUiState.Editing()
+        is AuthUiState.Editing -> state
+        is AuthUiState.Error -> AuthUiState.Editing(state.email, state.password, state.name, state.isRegisterMode)
+        is AuthUiState.Loading -> AuthUiState.Editing(state.email, state.password, state.name, state.isRegisterMode)
     }
 }

@@ -25,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.rmp_frontend.presentation.components.AppButton
 import com.example.rmp_frontend.presentation.components.AppTextField
@@ -40,7 +39,7 @@ import kotlinx.coroutines.launch
 fun ProfileScreen(
     uiState: ProfileUiState,
     onLogoutClick: () -> Unit,
-    onUpdateCredentials: (String, String) -> Unit,
+    onUpdateProfile: (String) -> Unit,
     onRefreshClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -53,12 +52,6 @@ fun ProfileScreen(
             snackbarHostState.showSnackbar("Данные обновляются")
         }
     }
-    val showSnackbar: (String) -> Unit = { message ->
-        scope.launch {
-            snackbarHostState.showSnackbar(message)
-        }
-    }
-
     Scaffold(
         modifier = modifier,
         topBar = { AppTopBar(title = "Profile", onRefreshClick = handleRefreshClick) },
@@ -113,14 +106,10 @@ fun ProfileScreen(
 
         if (showSettingsDialog && successState != null) {
             SettingsDialog(
-                initialLogin = successState.user.email,
-                onSave = { login, password, repeatedPassword ->
-                    if (password != repeatedPassword) {
-                        showSnackbar("Passwords do not match")
-                    } else {
-                        onUpdateCredentials(login, password)
-                        showSettingsDialog = false
-                    }
+                initialName = successState.user.name,
+                onSave = { name ->
+                    onUpdateProfile(name)
+                    showSettingsDialog = false
                 },
                 onDismiss = { showSettingsDialog = false }
             )
@@ -190,13 +179,11 @@ private fun SettingsCard(
 
 @Composable
 private fun SettingsDialog(
-    initialLogin: String,
-    onSave: (String, String, String) -> Unit,
+    initialName: String,
+    onSave: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var login by remember(initialLogin) { mutableStateOf(initialLogin) }
-    var password by remember { mutableStateOf("") }
-    var repeatedPassword by remember { mutableStateOf("") }
+    var name by remember(initialName) { mutableStateOf(initialName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -204,26 +191,14 @@ private fun SettingsDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppTextField(
-                    value = login,
-                    onValueChange = { login = it },
-                    label = "Login / email"
-                )
-                AppTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = "New password",
-                    visualTransformation = PasswordVisualTransformation()
-                )
-                AppTextField(
-                    value = repeatedPassword,
-                    onValueChange = { repeatedPassword = it },
-                    label = "Repeat password",
-                    visualTransformation = PasswordVisualTransformation()
+                    value = name,
+                    onValueChange = { name = it },
+                    label = "Display name"
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(login, password, repeatedPassword) }) {
+            TextButton(onClick = { onSave(name) }) {
                 Text("Сохранить")
             }
         },

@@ -10,4 +10,5 @@ enum class ChartPeriod(val apiValue: String) {
     Week("1w"),
     Month("1m"),
     Year("1y"),
+    All("all"),
 }

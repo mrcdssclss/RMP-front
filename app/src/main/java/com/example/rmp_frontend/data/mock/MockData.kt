@@ -33,8 +33,8 @@ object MockData {
     )
 
     val transactions = listOf(
-        Transaction("tr-1", "sber", "SBER", TransactionType.Buy, 10, 281.20, 1_720_000_000_000),
-        Transaction("tr-2", "lkoh", "LKOH", TransactionType.Buy, 2, 6900.00, 1_720_086_400_000),
-        Transaction("tr-3", "sber", "SBER", TransactionType.Buy, 2, 303.10, 1_720_172_800_000),
+        Transaction("tr-1", "sber", "SBER", TransactionType.Buy, 10.0, 281.20, 1_720_000_000_000),
+        Transaction("tr-2", "lkoh", "LKOH", TransactionType.Buy, 2.0, 6900.00, 1_720_086_400_000),
+        Transaction("tr-3", "sber", "SBER", TransactionType.Buy, 2.0, 303.10, 1_720_172_800_000),
     )
 }
