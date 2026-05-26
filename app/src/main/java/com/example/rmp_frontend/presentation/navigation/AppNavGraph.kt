@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -21,6 +22,8 @@ import com.example.rmp_frontend.presentation.screens.market.MarketScreen
 import com.example.rmp_frontend.presentation.screens.portfolio.PortfolioScreen
 import com.example.rmp_frontend.presentation.screens.profile.ProfileScreen
 import com.example.rmp_frontend.presentation.screens.splash.SplashScreen
+import com.example.rmp_frontend.presentation.di.AppContainer
+import com.example.rmp_frontend.presentation.di.ViewModelFactory
 import com.example.rmp_frontend.presentation.state.AuthUiState
 import com.example.rmp_frontend.presentation.state.ProfileUiState
 import com.example.rmp_frontend.presentation.state.SplashUiState
@@ -33,8 +36,9 @@ import com.example.rmp_frontend.presentation.viewmodel.ProfileViewModel
 import com.example.rmp_frontend.presentation.viewmodel.SplashViewModel
 
 @Composable
-fun AppNavGraph() {
+fun AppNavGraph(appContainer: AppContainer) {
     val navController = rememberNavController()
+    val factory = remember(appContainer) { ViewModelFactory(appContainer) }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = bottomBarScreens.any { it.route == currentRoute }
@@ -52,7 +56,7 @@ fun AppNavGraph() {
             modifier = Modifier.padding(padding)
         ) {
             composable(Screen.Splash.route) {
-                val viewModel: SplashViewModel = viewModel()
+                val viewModel: SplashViewModel = viewModel(factory = factory)
                 val uiState by viewModel.uiState.collectAsState()
 
                 LaunchedEffect(uiState) {
@@ -71,7 +75,7 @@ fun AppNavGraph() {
             }
 
             composable(Screen.Auth.route) {
-                val viewModel: AuthViewModel = viewModel()
+                val viewModel: AuthViewModel = viewModel(factory = factory)
                 val uiState by viewModel.uiState.collectAsState()
 
                 LaunchedEffect(uiState) {
@@ -96,7 +100,7 @@ fun AppNavGraph() {
             }
 
             composable(Screen.Market.route) {
-                val viewModel: MarketViewModel = viewModel()
+                val viewModel: MarketViewModel = viewModel(factory = factory)
                 val uiState by viewModel.uiState.collectAsState()
 
                 MarketScreen(
@@ -113,7 +117,7 @@ fun AppNavGraph() {
                 arguments = listOf(navArgument("ticker") { type = NavType.StringType })
             ) { entry ->
                 val ticker = entry.arguments?.getString("ticker").orEmpty()
-                val viewModel: InstrumentViewModel = viewModel()
+                val viewModel: InstrumentViewModel = viewModel(factory = factory)
                 val uiState by viewModel.uiState.collectAsState()
 
                 LaunchedEffect(ticker) {
@@ -132,7 +136,7 @@ fun AppNavGraph() {
             }
 
             composable(Screen.Portfolio.route) {
-                val viewModel: PortfolioViewModel = viewModel()
+                val viewModel: PortfolioViewModel = viewModel(factory = factory)
                 val uiState by viewModel.uiState.collectAsState()
 
                 PortfolioScreen(
@@ -145,7 +149,7 @@ fun AppNavGraph() {
             }
 
             composable(Screen.History.route) {
-                val viewModel: HistoryViewModel = viewModel()
+                val viewModel: HistoryViewModel = viewModel(factory = factory)
                 val uiState by viewModel.uiState.collectAsState()
 
                 HistoryScreen(
@@ -155,7 +159,7 @@ fun AppNavGraph() {
             }
 
             composable(Screen.Profile.route) {
-                val viewModel: ProfileViewModel = viewModel()
+                val viewModel: ProfileViewModel = viewModel(factory = factory)
                 val uiState by viewModel.uiState.collectAsState()
 
                 LaunchedEffect(uiState) {
@@ -170,7 +174,7 @@ fun AppNavGraph() {
                 ProfileScreen(
                     uiState = uiState,
                     onLogoutClick = viewModel::onLogoutClick,
-                    onUpdateCredentials = viewModel::onUpdateCredentials,
+                    onUpdateProfile = viewModel::onUpdateProfile,
                     onRefreshClick = viewModel::onRefreshClick
                 )
             }

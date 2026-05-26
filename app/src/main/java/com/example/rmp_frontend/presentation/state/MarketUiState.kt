@@ -1,10 +1,8 @@
 package com.example.rmp_frontend.presentation.state
 
-import com.example.rmp_frontend.domain.model.Instrument
-
-data class MarketUiState(
-    val isLoading: Boolean = false,
-    val instruments: List<Instrument> = emptyList(),
-    val errorMessage: String? = null,
-    val isEmpty: Boolean = false,
-)
+sealed interface MarketUiState {
+    data object Loading : MarketUiState
+    data object Empty : MarketUiState
+    data class Error(val message: String) : MarketUiState
+    data class Success(val instruments: List<InstrumentSummaryUiModel>) : MarketUiState
+}

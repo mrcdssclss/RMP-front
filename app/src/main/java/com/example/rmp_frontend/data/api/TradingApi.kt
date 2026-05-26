@@ -6,9 +6,9 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface TradingApi {
-    @POST("orders/buy")
+    @POST("trades/buy")
     suspend fun buy(@Body request: TradeRequestDto): TradeResultDto
 
-    @POST("orders/sell")
+    @POST("trades/sell")
     suspend fun sell(@Body request: TradeRequestDto): TradeResultDto
 }

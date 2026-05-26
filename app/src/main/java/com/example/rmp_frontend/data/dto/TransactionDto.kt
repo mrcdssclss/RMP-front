@@ -5,7 +5,7 @@ data class TransactionDto(
     val instrumentId: String,
     val ticker: String,
     val type: String,
-    val quantity: Int,
+    val quantity: Double,
     val price: Double,
     val timestampMillis: Long,
 )

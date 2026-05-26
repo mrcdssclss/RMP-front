@@ -1,15 +1,16 @@
 package com.example.rmp_frontend.data.dto
 
 data class TradeRequestDto(
-    val instrumentId: String,
-    val quantity: Int,
+    val ticker: String,
+    val quantity: Double,
 )
 
 data class TradeResultDto(
-    val orderId: String,
-    val instrumentId: String,
-    val quantity: Int,
-    val executedPrice: Double,
-    val type: String,
-    val message: String? = null,
+    val transactionId: String,
+    val side: String,
+    val ticker: String,
+    val price: Double,
+    val quantity: Double,
+    val total: Double,
+    val createdAt: String,
 )

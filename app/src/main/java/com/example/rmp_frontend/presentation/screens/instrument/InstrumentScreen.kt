@@ -161,7 +161,7 @@ private fun InstrumentContent(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppButton(
-                    text = "Buy",
+                    text = if (state.isOperationLoading) "Submitting..." else "Buy",
                     onClick = {
                         if (validQuantity) {
                             pendingOperation = TradeOperation.Buy
@@ -170,7 +170,8 @@ private fun InstrumentContent(
                             onOperationFeedback("Введите количество")
                         }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    enabled = !state.isOperationLoading,
                 )
                 AppButton(
                     text = "Sell",
@@ -183,6 +184,7 @@ private fun InstrumentContent(
                         }
                     },
                     modifier = Modifier.weight(1f),
+                    enabled = !state.isOperationLoading,
                     secondary = true
                 )
             }
@@ -211,11 +213,9 @@ private fun InstrumentContent(
                 when (operation) {
                     TradeOperation.Buy -> {
                         onBuyClick(parsedQuantity)
-                        onOperationFeedback("Заявка на покупку отправлена")
                     }
                     TradeOperation.Sell -> {
                         onSellClick(parsedQuantity)
-                        onOperationFeedback("Заявка на продажу отправлена")
                     }
                 }
             },

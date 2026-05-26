@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.remember
+import com.example.rmp_frontend.presentation.di.AppContainer
 import com.example.rmp_frontend.presentation.navigation.AppNavGraph
 import com.example.rmp_frontend.ui.theme.RMPfrontendTheme
 
@@ -13,7 +15,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RMPfrontendTheme {
-                AppNavGraph()
+                val appContainer = remember { AppContainer(applicationContext) }
+                AppNavGraph(appContainer)
             }
         }
     }

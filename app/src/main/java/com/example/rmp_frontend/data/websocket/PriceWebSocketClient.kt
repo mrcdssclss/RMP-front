@@ -1,9 +1,6 @@
 package com.example.rmp_frontend.data.websocket
 
-import com.example.rmp_frontend.data.dto.InstrumentDto
-import com.example.rmp_frontend.data.mapper.toDomain
 import com.example.rmp_frontend.data.storage.TokenStorage
-import com.example.rmp_frontend.domain.model.Instrument
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,10 +22,10 @@ class PriceWebSocketClient(
 ) {
     private val gson = Gson()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val _priceUpdates = MutableSharedFlow<Instrument>(extraBufferCapacity = 64)
+    private val _priceUpdates = MutableSharedFlow<MarketPriceUpdate>(extraBufferCapacity = 64)
     private var webSocket: WebSocket? = null
 
-    val priceUpdates: SharedFlow<Instrument> = _priceUpdates
+    val priceUpdates: SharedFlow<MarketPriceUpdate> = _priceUpdates
 
     fun connect() {
         if (webSocket != null) return
@@ -44,9 +41,9 @@ class PriceWebSocketClient(
             object : WebSocketListener() {
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     runCatching {
-                        gson.fromJson(text, InstrumentDto::class.java).toDomain()
-                    }.onSuccess { instrument ->
-                        scope.launch { _priceUpdates.emit(instrument) }
+                        gson.fromJson(text, MarketPriceUpdate::class.java)
+                    }.onSuccess { update ->
+                        scope.launch { _priceUpdates.emit(update) }
                     }
                 }
 
@@ -66,3 +63,8 @@ class PriceWebSocketClient(
         webSocket = null
     }
 }
+
+data class MarketPriceUpdate(
+    val ticker: String,
+    val price: Double,
+)

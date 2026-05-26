@@ -21,12 +21,14 @@ class MockInstrumentRepository : InstrumentRepository {
             ChartPeriod.Week -> 24 * 60 * 60 * 1000L
             ChartPeriod.Month -> 24 * 60 * 60 * 1000L
             ChartPeriod.Year -> 30 * 24 * 60 * 60 * 1000L
+            ChartPeriod.All -> 365 * 24 * 60 * 60 * 1000L
         }
         val points = when (period) {
             ChartPeriod.Day -> 24
             ChartPeriod.Week -> 7
             ChartPeriod.Month -> 30
             ChartPeriod.Year -> 12
+            ChartPeriod.All -> 10
         }
         val now = System.currentTimeMillis()
         return List(points) { index ->

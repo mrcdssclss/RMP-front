@@ -9,11 +9,11 @@ import com.example.rmp_frontend.domain.repository.TradingRepository
 class TradingRepositoryImpl(
     private val tradingApi: TradingApi,
 ) : TradingRepository {
-    override suspend fun buyInstrument(instrumentId: String, quantity: Int): TradeResult {
+    override suspend fun buyInstrument(instrumentId: String, quantity: Double): TradeResult {
         return tradingApi.buy(TradeRequestDto(instrumentId, quantity)).toDomain()
     }
 
-    override suspend fun sellInstrument(instrumentId: String, quantity: Int): TradeResult {
+    override suspend fun sellInstrument(instrumentId: String, quantity: Double): TradeResult {
         return tradingApi.sell(TradeRequestDto(instrumentId, quantity)).toDomain()
     }
 }
