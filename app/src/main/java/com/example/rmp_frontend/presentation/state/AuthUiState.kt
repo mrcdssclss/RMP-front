@@ -29,3 +29,9 @@ sealed interface AuthUiState {
 
     data object Success : AuthUiState
 }
+data class AuthUiState(
+    val isLoading: Boolean = false,
+    val isAuthorized: Boolean = false,
+    val errorMessage: String? = null,
+    val isEmpty: Boolean = false,
+)

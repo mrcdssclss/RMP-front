@@ -1,75 +1,37 @@
 package com.example.rmp_frontend.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.rmp_frontend.domain.repository.AuthRepository
+import com.example.rmp_frontend.domain.repository.ProfileRepository
 import com.example.rmp_frontend.presentation.state.ProfileUiState
-import com.example.rmp_frontend.presentation.state.UserProfileUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class ProfileViewModel : ViewModel() {
-
-    private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
+class ProfileViewModel(
+    private val profileRepository: ProfileRepository,
+    private val authRepository: AuthRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    init {
-        loadProfile()
-    }
-
-    fun onRefreshClick() {
-        loadProfile()
-    }
-
-    fun onUpdateCredentials(login: String, password: String) {
-        val state = _uiState.value as? ProfileUiState.Success ?: return
-        val trimmedLogin = login.trim()
-
-        if (trimmedLogin.isBlank()) {
-            _uiState.value = state.copy(
-                credentialsMessage = null,
-                credentialsError = "Login is required",
-                credentialsEventId = state.credentialsEventId + 1
-            )
-            return
+    fun loadProfile() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            runCatching { profileRepository.getProfile() }
+                .onSuccess { user ->
+                    _uiState.value = ProfileUiState(user = user, isEmpty = false)
+                }
+                .onFailure { error -> _uiState.value = ProfileUiState(errorMessage = error.toUserMessage()) }
         }
+    }
 
-        if (password.length < 4) {
-            _uiState.value = state.copy(
-                credentialsMessage = null,
-                credentialsError = "Password is too short",
-                credentialsEventId = state.credentialsEventId + 1
-            )
-            return
+    fun logout() {
+        viewModelScope.launch {
+            authRepository.logout()
+            _uiState.value = ProfileUiState(isAuthorized = false, isEmpty = true)
         }
-
-        // UI stub only: password is not persisted here. Developer 2 should wire secure credentials update.
-        _uiState.value = state.copy(
-            user = state.user.copy(email = trimmedLogin),
-            credentialsMessage = "Данные профиля обновлены",
-            credentialsError = null,
-            credentialsEventId = state.credentialsEventId + 1
-        )
-    }
-
-    fun onLogoutClick() {
-        _uiState.value = ProfileUiState.Success(
-            user = UserProfileUiModel(
-                name = "Guest",
-                email = "not authorized",
-                isAuthorized = false
-            ),
-            appVersion = "1.0"
-        )
-    }
-
-    private fun loadProfile() {
-        _uiState.value = ProfileUiState.Success(
-            user = UserProfileUiModel(
-                name = "Demo Trader",
-                email = "demo.trader@example.com",
-                isAuthorized = true
-            ),
-            appVersion = "1.0"
-        )
     }
 }

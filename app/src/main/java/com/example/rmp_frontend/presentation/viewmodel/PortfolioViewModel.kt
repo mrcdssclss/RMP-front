@@ -1,40 +1,36 @@
 package com.example.rmp_frontend.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
-import com.example.rmp_frontend.presentation.state.PortfolioAssetUiModel
+import androidx.lifecycle.viewModelScope
+import com.example.rmp_frontend.domain.repository.PortfolioRepository
 import com.example.rmp_frontend.presentation.state.PortfolioUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class PortfolioViewModel : ViewModel() {
-
-    private val _uiState = MutableStateFlow<PortfolioUiState>(PortfolioUiState.Loading)
+class PortfolioViewModel(
+    private val portfolioRepository: PortfolioRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(PortfolioUiState())
     val uiState: StateFlow<PortfolioUiState> = _uiState.asStateFlow()
 
-    init {
-        loadPortfolio()
-    }
-
-    fun onRefreshClick() {
-        loadPortfolio()
-    }
-
-    private fun loadPortfolio() {
-        val assets = listOf(
-            PortfolioAssetUiModel("AAPL", "Apple Inc.", 8.0, 1515.60, 86.20, 6.03),
-            PortfolioAssetUiModel("NVDA", "NVIDIA", 14.0, 1859.20, 244.50, 15.14),
-            PortfolioAssetUiModel("TSLA", "Tesla", 3.0, 1053.30, -37.80, -3.46)
-        )
-
-        _uiState.value = if (assets.isEmpty()) {
-            PortfolioUiState.Empty
-        } else {
-            PortfolioUiState.Success(
-                cashBalance = 4250.00,
-                totalValue = 8678.10,
-                assets = assets
-            )
+    fun loadPortfolio() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            runCatching { portfolioRepository.getPortfolio() }
+                .onSuccess { portfolio ->
+                    _uiState.value = PortfolioUiState(
+                        balance = portfolio.balance,
+                        currency = portfolio.currency,
+                        assets = portfolio.items,
+                        totalValue = portfolio.totalValue,
+                        isEmpty = portfolio.items.isEmpty(),
+                    )
+                }
+                .onFailure { error -> _uiState.value = PortfolioUiState(errorMessage = error.toUserMessage()) }
         }
     }
+
+    fun refresh() = loadPortfolio()
 }

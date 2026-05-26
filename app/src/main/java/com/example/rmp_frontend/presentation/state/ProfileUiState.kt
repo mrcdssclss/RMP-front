@@ -1,15 +1,11 @@
 package com.example.rmp_frontend.presentation.state
 
-sealed interface ProfileUiState {
-    data object Loading : ProfileUiState
-    data object Empty : ProfileUiState
-    data class Error(val message: String) : ProfileUiState
+import com.example.rmp_frontend.domain.model.User
 
-    data class Success(
-        val user: UserProfileUiModel,
-        val appVersion: String,
-        val credentialsMessage: String? = null,
-        val credentialsError: String? = null,
-        val credentialsEventId: Int = 0
-    ) : ProfileUiState
-}
+data class ProfileUiState(
+    val isLoading: Boolean = false,
+    val user: User? = null,
+    val isAuthorized: Boolean = true,
+    val errorMessage: String? = null,
+    val isEmpty: Boolean = false,
+)
